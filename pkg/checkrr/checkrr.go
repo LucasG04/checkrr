@@ -13,7 +13,7 @@ const (
 	statusDownloading = "downloading"
 
 	reasonStatusNotDownloading = "Download status is not downloading"
-	reasonMissingAdded         = "Skipping download because added timestamp is missing"
+	reasonMissingAdded         = "Added timestamp is missing"
 	reasonNotEnoughTime        = "Download started recently, threshold: %s, actual: %s"
 	reasonDownloadTimeout      = "Download timed out, threshold: %s, actual: %s"
 	reasonSlowDownloadSpeed    = "Average speed is below %v/s: %v"
