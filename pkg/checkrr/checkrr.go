@@ -13,6 +13,7 @@ const (
 	statusDownloading = "downloading"
 
 	reasonStatusNotDownloading = "Download status is not downloading"
+	reasonMissingAdded         = "Skipping download because added timestamp is missing"
 	reasonNotEnoughTime        = "Download started recently, threshold: %s, actual: %s"
 	reasonDownloadTimeout      = "Download timed out, threshold: %s, actual: %s"
 	reasonSlowDownloadSpeed    = "Average speed is below %v/s: %v"
@@ -55,6 +56,10 @@ func (c *CheckRR) Check() error {
 		if err != nil {
 			return fmt.Errorf("error checking download status: %v", err)
 		}
+		if reason == reasonMissingAdded {
+			log.Warnf("Skipping download [ID: %d]: %s, Reason: %s", download.ID, download.Title, reason)
+			continue
+		}
 		if stuck {
 			stucks = append(stucks, download.ID)
 			log.Warnf("Stuck download detected [ID: %d]: %s, Reason: %s", download.ID, download.Title, reason)
@@ -72,6 +77,9 @@ func (c *CheckRR) Check() error {
 func (c *CheckRR) IsDownloadStuck(download client.Download) (bool, string, error) {
 	if download.Status != statusDownloading {
 		return false, reasonStatusNotDownloading, nil
+	}
+	if download.Added == "" {
+		return false, reasonMissingAdded, nil
 	}
 
 	addedTime, err := time.Parse(time.RFC3339, download.Added)
