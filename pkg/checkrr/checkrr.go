@@ -1,10 +1,12 @@
 package checkrr
 
 import (
+	"errors"
 	"fmt"
+	"time"
+
 	"github.com/soheilrt/checkrr/pkg/client"
 	"github.com/soheilrt/checkrr/pkg/config"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -19,6 +21,8 @@ const (
 	reasonSlowDownloadSpeed    = "Average speed is below %v/s: %v"
 	reasonAllGood              = "Average speed is %v/s"
 )
+
+var ErrMissingAdded = errors.New(reasonMissingAdded)
 
 type ClientRR interface {
 	FetchDownloads() ([]client.Download, error)
@@ -53,12 +57,12 @@ func (c *CheckRR) Check() error {
 	stucks := []int{}
 	for _, download := range downloads {
 		stuck, reason, err := c.IsDownloadStuck(download)
-		if err != nil {
-			return fmt.Errorf("error checking download status: %v", err)
-		}
-		if reason == reasonMissingAdded {
+		if errors.Is(err, ErrMissingAdded) {
 			log.Warnf("Skipping download [ID: %d]: %s, Reason: %s", download.ID, download.Title, reason)
 			continue
+		}
+		if err != nil {
+			return fmt.Errorf("error checking download status: %v", err)
 		}
 		if stuck {
 			stucks = append(stucks, download.ID)
@@ -79,7 +83,7 @@ func (c *CheckRR) IsDownloadStuck(download client.Download) (bool, string, error
 		return false, reasonStatusNotDownloading, nil
 	}
 	if download.Added == "" {
-		return false, reasonMissingAdded, nil
+		return false, reasonMissingAdded, ErrMissingAdded
 	}
 
 	addedTime, err := time.Parse(time.RFC3339, download.Added)
